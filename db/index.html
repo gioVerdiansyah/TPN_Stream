@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESP32-CAM Device Monitor</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: white;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: #333;
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 14px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+      overflow: hidden;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px;
+      text-align: left;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      padding: 15px;
+      border-bottom: 1px solid #f0f0f0;
+      color: #333;
+    }
+
+    tr:hover {
+      background: #f8f9ff;
+    }
+
+    .status {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .status.online {
+      background: #d4edda;
+      color: #155724;
+    }
+
+    .status.offline {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    .stream-link {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .stream-link:hover {
+      text-decoration: underline;
+    }
+
+    .no-data {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+
+    .refresh-btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    .refresh-btn:hover {
+      opacity: 0.9;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎥 ESP32-CAM Device Monitor</h1>
+      <p class="subtitle">Monitor dan kelola perangkat ESP32-CAM yang terhubung</p>
+      <button class="refresh-btn" onclick="loadDevices()">🔄 Refresh</button>
+    </div>
+
+    <div class="card">
+      <table id="deviceTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Serial Product</th>
+            <th>Status</th>
+            <th>First Connected</th>
+            <th>Last Connected</th>
+            <th>Stream Link</th>
+          </tr>
+        </thead>
+        <tbody id="deviceBody">
+          <tr>
+            <td colspan="6" class="loading">Loading...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleString('id-ID', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      });
+    }
+
+    async function loadDevices() {
+      try {
+        const response = await fetch('/api/devices');
+        const result = await response.json();
+
+        const tbody = document.getElementById('deviceBody');
+
+        if (result.success && result.data.length > 0) {
+          tbody.innerHTML = result.data.map(device => {
+            const isOnline = device.stream_link !== null;
+            const statusClass = isOnline ? 'online' : 'offline';
+            const statusText = isOnline ? 'Online' : 'Offline';
+
+            return `
+                    <tr>
+                        <td>\${device.id}</td>
+                        <td><strong>\${device.serial_product}</strong></td>
+                        <td><span class="status \${statusClass}">\${statusText}</span></td>
+                        <td>\${formatDate(device.first_connected)}</td>
+                        <td>\${formatDate(device.last_connected)}</td>
+                        <td>
+                            \${device.stream_link
+                                ? \`<a href="\${device.stream_link}" class="stream-link" target="_blank">View Stream</a>\`
+                                : '<span style="color: #999;">-</span>'
+                            }
+                        </td>
+                    </tr>
+                  `;
+          }).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="6" class="no-data">Tidak ada perangkat terdaftar</td></tr>';
+        }
+      } catch (error) {
+        console.error('Error loading devices:', error);
+        document.getElementById('deviceBody').innerHTML =
+          '<tr><td colspan="6" class="no-data">Error loading devices</td></tr>';
+      }
+    }
+
+    // Load devices on page load
+    loadDevices();
+
+    // Auto refresh every 5 seconds
+    setInterval(loadDevices, 5000);
+  </script>
+</body>
+
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "tpn-stream-server",
+  "version": "1.0.0",
+  "description": "ESP32-CAM Stream Server with ElysiaJS and SQLite",
+  "main": "server.ts",
+  "scripts": {
+    "dev": "bun --watch server.ts",
+    "start": "bun server.ts"
+  },
+  "dependencies": {
+    "elysia": "^1.1.29",
+    "@elysiajs/static": "^1.1.3",
+    "dotenv": "^16.4.7"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "bun-types": "latest"
+  }
+}
