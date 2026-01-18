@@ -190,23 +190,24 @@
             const statusText = isOnline ? 'Online' : 'Offline';
 
             return `
-                    <tr>
-                        <td>\${device.id}</td>
-                        <td><strong>\${device.serial_product}</strong></td>
-                        <td><span class="status \${statusClass}">\${statusText}</span></td>
-                        <td>\${formatDate(device.first_connected)}</td>
-                        <td>\${formatDate(device.last_connected)}</td>
-                        <td>
-                            \${device.stream_link
-                                ? \`<a href="\${device.stream_link}" class="stream-link" target="_blank">View Stream</a>\`
-                                : '<span style="color: #999;">-</span>'
-                            }
-                        </td>
-                    </tr>
-                  `;
+              <tr>
+                <td>${device.id}</td>
+                <td><strong>${device.serial_product}</strong></td>
+                <td><span class="status ${statusClass}">${statusText}</span></td>
+                <td>${formatDate(device.first_connected)}</td>
+                <td>${formatDate(device.last_connected)}</td>
+                <td>
+                  ${device.stream_link
+                ? `<a href="${device.stream_link}" class="stream-link" target="_blank">View Stream</a>`
+                : '<span style="color: #999;">-</span>'
+              }
+                </td>
+              </tr>
+            `;
           }).join('');
         } else {
-          tbody.innerHTML = '<tr><td colspan="6" class="no-data">Tidak ada perangkat terdaftar</td></tr>';
+          tbody.innerHTML =
+            '<tr><td colspan="6" class="no-data">Tidak ada perangkat terdaftar</td></tr>';
         }
       } catch (error) {
         console.error('Error loading devices:', error);
@@ -215,10 +216,7 @@
       }
     }
 
-    // Load devices on page load
     loadDevices();
-
-    // Auto refresh every 5 seconds
     setInterval(loadDevices, 5000);
   </script>
 </body>
