@@ -4,8 +4,8 @@
   "description": "ESP32-CAM Stream Server with ElysiaJS and SQLite",
   "main": "index.ts",
   "scripts": {
-    "dev": "bun --watch server.ts",
-    "start": "bun server.ts"
+    "dev": "bun --watch index.ts",
+    "start": "bun index.ts"
   },
   "dependencies": {
     "elysia": "^1.1.29",
