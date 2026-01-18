@@ -185,34 +185,34 @@ const app = new Elysia()
   })
 
   // Endpoint untuk streaming video per device
-.get("/stream/:serial", ({ params: { serial }, set }) => {
-  const frameData = latestFrames.get(serial);
-  if (!frameData?.frame) {
-    set.status = 404;
-    return "No stream";
-  }
+  .get("/stream/:serial", ({ params: { serial }, set }) => {
+    const frameData = latestFrames.get(serial);
+    if (!frameData?.frame) {
+      set.status = 404;
+      return "No stream";
+    }
 
-  const pass = new PassThrough();
-  set.headers = {
-    "Content-Type": "multipart/x-mixed-replace; boundary=frame",
-    "Cache-Control": "no-cache",
-    Connection: "keep-alive"
-  };
+    const pass = new PassThrough();
+    set.headers = {
+      "Content-Type": "multipart/x-mixed-replace; boundary=frame",
+      "Cache-Control": "no-cache",
+      Connection: "keep-alive",
+    };
 
-  const interval = setInterval(() => {
-    const data = latestFrames.get(serial);
-    if (!data) return;
+    const interval = setInterval(() => {
+      const data = latestFrames.get(serial);
+      if (!data) return;
 
-    pass.write(`--frame\r\n`);
-    pass.write(`Content-Type: image/jpeg\r\n`);
-    pass.write(`Content-Length: ${data.frame.length}\r\n\r\n`);
-    pass.write(data.frame);
-    pass.write("\r\n");
-  }, 33);
+      pass.write(`--frame\r\n`);
+      pass.write(`Content-Type: image/jpeg\r\n`);
+      pass.write(`Content-Length: ${data.frame.length}\r\n\r\n`);
+      pass.write(data.frame);
+      pass.write("\r\n");
+    }, 33);
 
-  pass.on("close", () => clearInterval(interval));
-  return pass;
-});
+    pass.on("close", () => clearInterval(interval));
+    return pass;
+  })
 
   // ========== go2rtc API Endpoints ==========
 
