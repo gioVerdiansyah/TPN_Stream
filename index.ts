@@ -1,6 +1,7 @@
 import { Elysia } from "elysia";
 import { staticPlugin } from "@elysiajs/static";
 import { Database } from "bun:sqlite";
+import { PassThrough } from "stream";
 import "dotenv/config";
 
 const PORT = process.env.APP_PORT || 8090;
@@ -44,7 +45,7 @@ const latestFrames = new Map<
 async function registerStreamToGo2rtc(serialProduct: string) {
   try {
     const streamUrl1 = `${SERVER_HOST}/stream/${serialProduct}`;
-    const streamUrl2 = `ffmpeg:${serialProduct}%23video=copy%23audio=none`;
+    const streamUrl2 = `ffmpeg:${SERVER_HOST}/stream/${serialProduct}#video=copy#audio=none`;
 
     const url = `${GO2RTC_URL}/api/streams?name=${serialProduct}&src=${encodeURIComponent(streamUrl1)}&src=${encodeURIComponent(streamUrl2)}`;
 
@@ -184,53 +185,34 @@ const app = new Elysia()
   })
 
   // Endpoint untuk streaming video per device
-  .get("/stream/:serial", ({ params: { serial }, set }) => {
-    const frameData = latestFrames.get(serial);
+.get("/stream/:serial", ({ params: { serial }, set }) => {
+  const frameData = latestFrames.get(serial);
+  if (!frameData?.frame) {
+    set.status = 404;
+    return "No stream";
+  }
 
-    if (!frameData || !frameData.frame) {
-      set.status = 404;
-      return "No stream available for this device";
-    }
+  const pass = new PassThrough();
+  set.headers = {
+    "Content-Type": "multipart/x-mixed-replace; boundary=frame",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive"
+  };
 
-    // Setup MJPEG stream
-    set.headers = {
-      "Content-Type": "multipart/x-mixed-replace; boundary=frame",
-      "Cache-Control": "no-cache",
-      Connection: "keep-alive",
-    };
+  const interval = setInterval(() => {
+    const data = latestFrames.get(serial);
+    if (!data) return;
 
-    // Return stream generator
-    return new ReadableStream({
-      start(controller) {
-        const interval = setInterval(() => {
-          const data = latestFrames.get(serial);
+    pass.write(`--frame\r\n`);
+    pass.write(`Content-Type: image/jpeg\r\n`);
+    pass.write(`Content-Length: ${data.frame.length}\r\n\r\n`);
+    pass.write(data.frame);
+    pass.write("\r\n");
+  }, 33);
 
-          if (data && data.frame) {
-            try {
-              const boundary = "--frame\r\n";
-              const contentType = "Content-Type: image/jpeg\r\n";
-              const contentLength = `Content-Length: ${data.frame.length}\r\n\r\n`;
-              const ending = "\r\n";
-
-              controller.enqueue(new TextEncoder().encode(boundary));
-              controller.enqueue(new TextEncoder().encode(contentType));
-              controller.enqueue(new TextEncoder().encode(contentLength));
-              controller.enqueue(data.frame);
-              controller.enqueue(new TextEncoder().encode(ending));
-            } catch (error) {
-              clearInterval(interval);
-              controller.close();
-            }
-          }
-        }, 33); // ~30 FPS
-
-        // Cleanup on close
-        return () => {
-          clearInterval(interval);
-        };
-      },
-    });
-  })
+  pass.on("close", () => clearInterval(interval));
+  return pass;
+});
 
   // ========== go2rtc API Endpoints ==========
 
