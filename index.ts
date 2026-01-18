@@ -3,10 +3,10 @@ import { staticPlugin } from "@elysiajs/static";
 import { Database } from "bun:sqlite";
 import "dotenv/config";
 
-const PORT = 8090;
+const PORT = process.env.APP_PORT || 8090;
 const SOCKET_KEY = process.env.SOCKET_KEY || "your-socket-key-here";
-const GO2RTC_URL = process.env.GO2RTC_URL || "http://170.64.178.219:1984";
-const SERVER_HOST = process.env.SERVER_HOST || "http://0.0.0.0:8090";
+const GO2RTC_URL = `http://0.0.0.0:${process.env.GO2RTC_API_PORT || 1984}`;
+const SERVER_HOST = `${process.env.SERVER_HOST || 'http://0.0.0.0'}:${PORT}`;
 
 // Inisialisasi Database
 const db = new Database("db/esp32cam.db");
